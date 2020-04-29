@@ -55,24 +55,24 @@ public class Client {
             Scanner cmdin = new Scanner(System.in);
             while (true) {
                 String msg = cmdin.nextLine();
-                System.out.println("test");
+                System.out.println(msg);
                 // forcing TCP to send data immediately
                 StringTokenizer stringTokenizer = new StringTokenizer(msg, " ");
                     while (stringTokenizer.hasMoreTokens()) {
-                        //System.out.println(stringTokenizer.nextToken());
-                        if (stringTokenizer.nextToken().equals(GET)) {
+                        String type = stringTokenizer.nextToken();
+                        if (type.equals(GET)) {
                             requestType = GET;
                             target = stringTokenizer.nextToken();
                         }
-                        else if (stringTokenizer.nextToken().equals(PUT)) {
+                        else if (type.equals(PUT)) {
                             requestType = PUT;
                             target = stringTokenizer.nextToken();
                         }
-                        else if (stringTokenizer.nextToken().equals(DELETE)) {
+                        else if (type.equals(DELETE)) {
                             requestType = DELETE;
                             target = stringTokenizer.nextToken();
                         }
-                        else if (stringTokenizer.nextToken().equals(DISCONNECT)) {
+                        else if (type.equals(DISCONNECT)) {
                             requestType = DISCONNECT;
                             target = stringTokenizer.nextToken();
                         }
