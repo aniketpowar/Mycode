@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AssNetwork:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/AssNetwork_jar</output-path>
+    <root id="archive" name="AssNetwork.jar">
+      <element id="module-output" name="AssNetwork" />
+      <element id="extracted-dir" path="$USER_HOME$/Monash/Network Protocol Standards/Assignment/args4j-2.0.21.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Monash/Network Protocol Standards/Assignment/json_simple-1.1.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
