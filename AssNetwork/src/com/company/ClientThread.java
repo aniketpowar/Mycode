@@ -8,6 +8,9 @@ import javax.swing.plaf.synth.SynthOptionPaneUI;
 import java.io.*;
 
 import java.net.Socket;
+import java.net.SocketException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -36,8 +39,12 @@ public class ClientThread implements Runnable {
             }
             try {
                 while (true) {
+                    if(in.available() <= 0){
+                        System.out.println("test");
+                    }
+
 //                    String msg = in.readUTF();
-                    System.out.println("Server reading data");
+                    //System.out.println("Server reading data");
 
                     int c;
                     String msg = "";
@@ -45,10 +52,16 @@ public class ClientThread implements Runnable {
                         c = in.read();
                         msg+=(char)c;
                     } while(in.available()>0);
-                    System.out.println("read byte string is  \n"+msg);
+                    if(msg!=("")){continue;}
+
+                    //System.out.println("read byte string is  \n"+msg);
                     JSONObject jsonObjectGETResponse = new JSONObject();
                     JSONParser parser = new JSONParser();
+//                    FileReader read12 = new FileReader();
+                    System.out.println(msg);
+
                     JSONObject object = (JSONObject) parser.parse(msg);
+
                     String type = (String) object.get("type");
                     if (type.equals("GET")){
                         String target = (String) object.get("target");
@@ -78,15 +91,76 @@ public class ClientThread implements Runnable {
                             //e.printStackTrace();
                         }
                     }
-//                    else if(type.equals("PUT")){
-//                        System.out.println("Inside put");
-//                    }
 
-                    out.writeUTF(msg);
-                    out.flush();
+                    else if(type.equals("PUT")) {
 
-                    if (msg.equals("end"))
+                        String target = (String) object.get("target");
+                        String content2 = (String) object.get("content");
+                        String getPath = pathOfFile + target;
+                        boolean flag1 = Files.exists(Paths.get(getPath));
+                        if (flag1) {
+                            System.out.println("Target File exist");
+                            //FileReader read = new FileReader(getPath);
+                            FileWriter writer = new FileWriter(getPath);
+                            writer.write(content2);
+                            jsonObjectGETResponse.put("message", "response");
+                            jsonObjectGETResponse.put("code", "202");
+                            jsonObjectGETResponse.put("content", "Modified");
+                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
+                            out.flush();
+                            writer.flush();
+                            writer.close();
+                        }
+                        else {
+                            System.out.println("Target Doesn't exist");
+                            System.out.println(getPath);
+                            File file12 = new File(getPath);
+                            file12.getParentFile().mkdirs();
+                            FileWriter writer = new FileWriter(file12);
+                            writer.write(content2);
+                            jsonObjectGETResponse.put("message", "response");
+                            jsonObjectGETResponse.put("code", "201");
+                            jsonObjectGETResponse.put("content", "ok");
+                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
+                            out.flush();
+                            writer.flush();
+                            writer.close();
+                        }
+                    }
+                    else if(type.equals("DELETE")){
+                        String target = (String) object.get("target");
+                        try {
+                            String getPath = pathOfFile + target;
+                            FileReader read1 = new FileReader(getPath);
+                            File f=new File(getPath);
+                            if (f.delete()){
+                                jsonObjectGETResponse.put("message", "response");
+                                jsonObjectGETResponse.put("code", "201");
+                                jsonObjectGETResponse.put("content", "ok");
+                                out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
+                                out.flush();
+                            }
+                        }
+                        catch (FileNotFoundException e) {
+//                            System.out.println("File Not Found");
+                            jsonObjectGETResponse.put("message", "response");
+                            jsonObjectGETResponse.put("code", "400");
+                            jsonObjectGETResponse.put("content",  "Not Found");
+                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
+                            out.flush();
+                            //e.printStackTrace();
+                        }
+                    }
+                    else if(type.equals("DISCONNECT")){
+                        in.close();
+//                        socket.shutdownInput();
+//                        socket.shutdownOutput();
+                        out.close();
+                        socket.close();
                         break;
+                    }
+
+
                 }
                 in.close();
                 out.close();
@@ -101,43 +175,13 @@ public class ClientThread implements Runnable {
             }
             //e.printStackTrace();
             //}
+        } catch (SocketException e) {
+            System.out.println("Socket: " + e.getMessage());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         //A thread finishes if run method finishes
     }
-
-
-
-
 }
 
-
-
-// String finalname =  name.substring(4);
-//  /Users/aniketpowar/IdeaProjects/AssNetwork/src/index.html
-//                    String directory = "/Users/aniketpowar/IdeaPrjects/AssNetwork/";
-//                    File folder = new File(directory);
-//
-//                    if (folder.isDirectory()) {
-//                        File[] listOfFiles = folder.listFiles();
-//                        if (listOfFiles.length < 1)
-//                            System.out.println(
-//                                    "There is no File inside Folder");
-//                        else System.out.println("List of Files & Folder");
-//                        for (File file : listOfFiles) {
-//                            if(!file.isDirectory()) {
-//                                System.out.println(file.getCanonicalPath().toString());
-//                                BufferedReader inp = new BufferedReader(new FileReader("/Users/aniketpowar/IdeaProjects/AssNetwork/src/index1.html"));
-//                                String line;
-//                                while ((line = inp.readLine()) != null) {
-//                                    //System.out.println(line);
-//                                }
-//                                inp.close();
-//                            }
-//
-//
-//                        }
-//                    }
-//                    else System.out .println("There is no Folder @ given path :" + directory);
