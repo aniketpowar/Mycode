@@ -3,10 +3,7 @@ package com.company;
 import java.io.*;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -17,7 +14,7 @@ import java.util.StringTokenizer;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.kohsuke.args4j.CmdLineException;
+
 import org.kohsuke.args4j.CmdLineParser;
 
 
@@ -37,27 +34,37 @@ public class Client {
         String requestType = null;
         String temp = null;
         String target = null;
+        String connect = "connect";
+        String ip = null;
+        String port = null;
+
         String content = null;
         JSONObject jsonObjectGET = new JSONObject();
         JSONObject jsonObjectPUT = new JSONObject();
         JSONParser par = new JSONParser();
         String fileRelativePath = (new File("").getAbsolutePath());
         String pathOfFile = fileRelativePath + "/www";
-
         try {
-            parser.parseArgument(args);
-            // print values of the command line options
-            System.out.println(values.getHost());
-            System.out.println(values.getPort());
+            Scanner cmdin1 = new Scanner(System.in);
+            String msg12 = cmdin1.nextLine();
+            StringTokenizer stringTokenizer1 = new StringTokenizer(msg12, " ");
+            while (stringTokenizer1.hasMoreTokens()) {
+                String type = stringTokenizer1.nextToken();
+                if (type.equals(connect)) {
+//                  requestType = GET;
+                    ip = stringTokenizer1.nextToken();
+                    port = stringTokenizer1.nextToken();
+                    socket = new Socket(ip, Integer.parseInt(port));
+                    System.out.println("Client Connected...");
+                } else {
+                    main(null);
+                }
+            }
 
-            //connect to a server listening on port 4444 on localhost
-            socket = new Socket(values.getHost(), values.getPort());
-            System.out.println("Client Connected...");
 
             // Preparing sending and receiving streams
             DataInputStream in = new DataInputStream(socket.getInputStream());
-            DataOutputStream out = new DataOutputStream(
-                    socket.getOutputStream());
+            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
             // Reading from console
             Scanner cmdin = new Scanner(System.in);
@@ -91,7 +98,7 @@ public class Client {
                         out.write((String.valueOf(jsonObjectGET) + "\n").getBytes("UTF-8"));
                         out.flush();
 
-                        System.out.println("CLIENT reading data");
+//                            System.out.println("CLIENT reading data");
                         int c;
                         String msg1 = "";
                         do {
@@ -112,14 +119,14 @@ public class Client {
                         String getPath = pathOfFile + temp;
                         boolean flag1 = Files.exists(Paths.get(getPath));
                         if (flag1) {
-                            System.out.println("File exist");
+//                            System.out.println("File exist");
                             FileReader read = new FileReader(getPath);
                             Scanner scanFile = new Scanner(read);
                             String content1 = "";
                             while (scanFile.hasNextLine()) {
                                 content1 = content1 + scanFile.nextLine();
                             }
-                            System.out.println(content1);
+                            //System.out.println(content1);
                             jsonObjectPUT.put("message", "request");
                             jsonObjectPUT.put("type", PUT.toUpperCase());
                             jsonObjectPUT.put("target", target);
@@ -138,11 +145,7 @@ public class Client {
                             JSONObject jsonObject2 = (JSONObject) par.parse(serverReply);
                             String reply = (String) jsonObject2.get("content");
                             System.out.println(reply);
-
-
                         } else System.out.println("Source file not found.");
-
-
                     } else if (requestType.equals(DELETE)) {
 
                         jsonObjectGET.put("message", "request");
@@ -159,46 +162,36 @@ public class Client {
                         } while (in.available() > 0);
                         String[] tempStr = msg1.split("}");
                         String serverReply = tempStr[0] + "}";
-                        //System.out.println(msg1);
+
                         JSONObject jsonObject2 = (JSONObject) par.parse(serverReply);
                         String reply = (String) jsonObject2.get("content");
                         System.out.println(reply);
 
                     } else if (requestType.equals(DISCONNECT)) {
-
-
                         jsonObjectGET.put("message", "request");
                         jsonObjectGET.put("type", DISCONNECT.toUpperCase());
                         System.out.println("Successfully disconnected");
                         out.write((String.valueOf(jsonObjectGET) + "\n").getBytes("UTF-8"));
                         out.flush();
-//                    socket.shutdownInput();
-//                    socket.shutdownOutput();
                         in.close();
                         out.close();
                         socket.close();
                     } else {
                         break;
                     }
-                }catch (NoSuchElementException e) {
+                } catch (NoSuchElementException e) {
                     continue;
                 }
             }
-
             cmdin.close();
-
             in.close();
             out.close();
             socket.close();
-
-        } catch (SocketException e) {
-            System.out.println("Socket: " + e.getMessage());
+        } catch (NoRouteToHostException | ConnectException e){
+            System.out.println("No server");
+            main(null);
         } catch (IOException | ParseException e) {
             e.printStackTrace();
-        } catch (CmdLineException e) {
-            System.err.println(e.getMessage());
-            parser.printUsage(System.err);
-            System.exit(-1);
         } catch (NullPointerException e){
             System.out.println("null");
         }catch (NoSuchElementException e){
@@ -206,3 +199,5 @@ public class Client {
         }
     }
 }
+
+//192.168.1.105.

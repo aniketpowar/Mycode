@@ -39,9 +39,9 @@ public class ClientThread implements Runnable {
             }
             try {
                 while (true) {
-                    if(in.available() <= 0){
-                        System.out.println("test");
-                    }
+//                    if(in.available() <= 0){
+//                        System.out.println("test");
+//                    }
 
 //                    String msg = in.readUTF();
                     //System.out.println("Server reading data");
@@ -52,7 +52,7 @@ public class ClientThread implements Runnable {
                         c = in.read();
                         msg+=(char)c;
                     } while(in.available()>0);
-                    if(msg!=("")){continue;}
+//
 
                     //System.out.println("read byte string is  \n"+msg);
                     JSONObject jsonObjectGETResponse = new JSONObject();
