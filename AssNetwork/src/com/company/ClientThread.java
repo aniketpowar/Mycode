@@ -4,21 +4,29 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import javax.swing.plaf.synth.SynthOptionPaneUI;
 import java.io.*;
 
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class ClientThread implements Runnable {
     private Socket socket;
 
     public ClientThread(Socket socket) {
         this.socket = socket;
+    }
+    public boolean validate(String target){
+        String regularEx = "^\\/((\\w{1,20}\\/){0,10})\\w{1,10}\\.\\w{1,5}$";
+        Pattern pattern_regular = Pattern.compile(regularEx);
+        boolean is_Matching = Pattern.matches(regularEx,target);
+        return  is_Matching;
     }
 
     @Override
@@ -39,118 +47,160 @@ public class ClientThread implements Runnable {
             }
             try {
                 while (true) {
-//                    if(in.available() <= 0){
-//                        System.out.println("test");
-//                    }
-
-//                    String msg = in.readUTF();
-                    //System.out.println("Server reading data");
-
                     int c;
                     String msg = "";
                     do {
                         c = in.read();
                         msg+=(char)c;
                     } while(in.available()>0);
-//
 
                     //System.out.println("read byte string is  \n"+msg);
                     JSONObject jsonObjectGETResponse = new JSONObject();
                     JSONParser parser = new JSONParser();
-//                    FileReader read12 = new FileReader();
-                    System.out.println(msg);
 
                     JSONObject object = (JSONObject) parser.parse(msg);
 
                     String type = (String) object.get("type");
-                    if (type.equals("GET")){
-                        String target = (String) object.get("target");
-                        try{
-                            String getPath = pathOfFile + target;
-                            FileReader read = new FileReader(getPath);
-                            Scanner scanFile = new Scanner(read);
-                            String tempLine = "";
-                            while(scanFile.hasNextLine())
-                            {
-                                tempLine = tempLine + scanFile.nextLine();
-                            }
-                            System.out.println(tempLine);
-                            jsonObjectGETResponse.put("message", "response");
-                            jsonObjectGETResponse.put("code", "200");
-                            jsonObjectGETResponse.put("content",  tempLine);
-                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
-                            out.flush();
-                            scanFile.close();
-                        } catch (FileNotFoundException e) {
-                            System.out.println("File Not Found");
-                            jsonObjectGETResponse.put("message", "response");
-                            jsonObjectGETResponse.put("code", "400");
-                            jsonObjectGETResponse.put("content",  "Not Found");
-                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
-                            out.flush();
-                            //e.printStackTrace();
-                        }
-                    }
-
-                    else if(type.equals("PUT")) {
-
-                        String target = (String) object.get("target");
-                        String content2 = (String) object.get("content");
-                        String getPath = pathOfFile + target;
-                        boolean flag1 = Files.exists(Paths.get(getPath));
-                        if (flag1) {
-                            System.out.println("Target File exist");
-                            //FileReader read = new FileReader(getPath);
-                            FileWriter writer = new FileWriter(getPath);
-                            writer.write(content2);
-                            jsonObjectGETResponse.put("message", "response");
-                            jsonObjectGETResponse.put("code", "202");
-                            jsonObjectGETResponse.put("content", "Modified");
-                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
-                            out.flush();
-                            writer.flush();
-                            writer.close();
-                        }
-                        else {
-                            System.out.println("Target Doesn't exist");
-                            System.out.println(getPath);
-                            File file12 = new File(getPath);
-                            file12.getParentFile().mkdirs();
-                            FileWriter writer = new FileWriter(file12);
-                            writer.write(content2);
-                            jsonObjectGETResponse.put("message", "response");
-                            jsonObjectGETResponse.put("code", "201");
-                            jsonObjectGETResponse.put("content", "ok");
-                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
-                            out.flush();
-                            writer.flush();
-                            writer.close();
-                        }
-                    }
-                    else if(type.equals("DELETE")){
-                        String target = (String) object.get("target");
+                    if (type.equals("GET")) {
                         try {
-                            String getPath = pathOfFile + target;
-                            FileReader read1 = new FileReader(getPath);
-                            File f=new File(getPath);
-                            if (f.delete()){
+                            boolean check = validate((String) object.get("target"));
+                            if (check == true) {
+                                String target = (String) object.get("target");
+                                try {
+                                    String getPath = pathOfFile + target;
+                                    FileReader read = new FileReader(getPath);
+                                    Scanner scanFile = new Scanner(read);
+                                    String tempLine = "";
+                                    while (scanFile.hasNextLine()) {
+                                        tempLine = tempLine + scanFile.nextLine();
+                                    }
+                                    System.out.println(tempLine);
+                                    jsonObjectGETResponse.put("message", "response");
+                                    jsonObjectGETResponse.put("code", "200");
+                                    jsonObjectGETResponse.put("content", tempLine);
+                                    out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                    out.flush();
+                                    scanFile.close();
+
+                                } catch (FileNotFoundException e) {
+                                    System.out.println("File Not Found");
+                                    jsonObjectGETResponse.put("message", "response");
+                                    jsonObjectGETResponse.put("code", "400");
+                                    jsonObjectGETResponse.put("content", "Not Found");
+                                    out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                    out.flush();
+                                    //e.printStackTrace();
+                                }
+                            }else {
                                 jsonObjectGETResponse.put("message", "response");
-                                jsonObjectGETResponse.put("code", "201");
-                                jsonObjectGETResponse.put("content", "ok");
-                                out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
+                                jsonObjectGETResponse.put("code", "401");
+                                jsonObjectGETResponse.put("content", "Bad Request");
+                                out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
                                 out.flush();
                             }
                         }
-                        catch (FileNotFoundException e) {
-//                            System.out.println("File Not Found");
-                            jsonObjectGETResponse.put("message", "response");
-                            jsonObjectGETResponse.put("code", "400");
-                            jsonObjectGETResponse.put("content",  "Not Found");
-                            out.write((String.valueOf(jsonObjectGETResponse)+ "\n").getBytes("UTF-8"));
-                            out.flush();
-                            //e.printStackTrace();
+                       catch (NullPointerException e){
+                                continue;
+                            }
                         }
+                    else if(type.equals("PUT")) {
+
+                        String target = (String) object.get("target");
+                        boolean check = validate((String) object.get("target"));
+                        if (check == true) {
+                            String content2 = (String) object.get("content");
+                            String getPath = pathOfFile + target;
+                            boolean flag1 = Files.exists(Paths.get(getPath));
+                            if (flag1) {
+                                System.out.println("Target File exist");
+                                //FileReader read = new FileReader(getPath);
+                                FileWriter writer = new FileWriter(getPath);
+                                writer.write(content2);
+                                jsonObjectGETResponse.put("message", "response");
+                                jsonObjectGETResponse.put("code", "202");
+                                jsonObjectGETResponse.put("content", "Modified");
+                                out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                out.flush();
+                                writer.flush();
+                                writer.close();
+                            } else {
+                                System.out.println("Target Doesn't exist");
+                                System.out.println(getPath);
+                                File file12 = new File(getPath);
+                                file12.getParentFile().mkdirs();
+                                FileWriter writer = new FileWriter(file12);
+                                writer.write(content2);
+                                jsonObjectGETResponse.put("message", "response");
+                                jsonObjectGETResponse.put("code", "201");
+                                jsonObjectGETResponse.put("content", "ok");
+                                out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                out.flush();
+                                writer.flush();
+                                writer.close();
+                            }
+                        }
+                        else {
+                            jsonObjectGETResponse.put("message", "response");
+                            jsonObjectGETResponse.put("code", "401");
+                            jsonObjectGETResponse.put("content", "Bad Request");
+                            out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                            out.flush();
+                        }
+
                     }
+
+                    else if(type.equals("DELETE")) {
+                        String target = (String) object.get("target");
+//                        boolean check = validate((String) object.get("target"));
+//                        if (check == true) {
+
+                                String getPath = pathOfFile + target;
+                                //FileReader read1 = new FileReader(getPath);
+                                File f = new File(getPath);
+                                if(f.isDirectory()) {
+                                    String[] arr = f.list();
+                                    if (arr.length > 0) {
+                                        jsonObjectGETResponse.put("message", "response");
+                                        jsonObjectGETResponse.put("code", "402");
+                                        jsonObjectGETResponse.put("content", "Unknown Error");
+                                        out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                        out.flush();
+
+                                    }
+                                    else {
+                                        f.delete();
+                                        jsonObjectGETResponse.put("message", "response");
+                                        jsonObjectGETResponse.put("code", "203");
+                                        jsonObjectGETResponse.put("content", "ok");
+                                        out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                        out.flush();
+                                    }
+                                }
+                                else if (f.delete()){
+                                    jsonObjectGETResponse.put("message", "response");
+                                    jsonObjectGETResponse.put("code", "203");
+                                    jsonObjectGETResponse.put("content", "ok");
+                                    out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                    out.flush();
+                                }
+                                else {
+                                    jsonObjectGETResponse.put("message", "response");
+                                    jsonObjectGETResponse.put("code", "400");
+                                    jsonObjectGETResponse.put("content", "Not Found");
+                                    out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+                                    out.flush();
+
+                                }
+
+                        }
+//                        else {
+//                            jsonObjectGETResponse.put("message", "response");
+//                            jsonObjectGETResponse.put("code", "401");
+//                            jsonObjectGETResponse.put("content", "Bad Request");
+//                            out.write((String.valueOf(jsonObjectGETResponse) + "\n").getBytes("UTF-8"));
+//                            out.flush();
+//                        }
+//                    }
                     else if(type.equals("DISCONNECT")){
                         in.close();
 //                        socket.shutdownInput();
@@ -165,7 +215,8 @@ public class ClientThread implements Runnable {
                 in.close();
                 out.close();
                 socket.close();
-            } catch (EOFException e) {
+            }
+            catch (EOFException e) {
                 if (socket != null)
                     socket.close();
                 System.out.println("Client disconnected.");
@@ -180,7 +231,6 @@ public class ClientThread implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         //A thread finishes if run method finishes
     }
 }
